@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   pages: write
+  packages: write
   id-token: write
 
 concurrency:
@@ -23,12 +24,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          registry-url: https://npm.pkg.github.com
 
       - name: Install and build module
         run: |
           npm install
           npm run build
           npm test
+
+      - name: Publish to GitHub Packages
+        run: |
+          # Temporarily scope the package for GitHub Packages
+          node -e "
+            const pkg = require('./package.json');
+            pkg.name = '@lexa-b/mojidoodle-algo-segmenter';
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          npm publish --registry https://npm.pkg.github.com || true
+          # Restore original package.json
+          git checkout package.json
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install and build example
         working-directory: example
