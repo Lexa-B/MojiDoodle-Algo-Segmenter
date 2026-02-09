@@ -1,0 +1,30 @@
+<div class="toolbar">
+  <div class="group">
+    <button
+      [class.active]="mode === 'draw'"
+      (click)="setMode('draw')"
+    >Draw</button>
+    <button
+      [class.active]="mode === 'lasso'"
+      (click)="setMode('lasso')"
+    >Lasso</button>
+  </div>
+
+  <div class="group">
+    <label>
+      Max chars:
+      <input
+        type="number"
+        [value]="maxCharacters"
+        min="1"
+        max="20"
+        (input)="onMaxCharsInput($event)"
+      />
+    </label>
+  </div>
+
+  <div class="group">
+    <button (click)="undo.emit()">Undo</button>
+    <button (click)="clear.emit()">Clear</button>
+  </div>
+</div>

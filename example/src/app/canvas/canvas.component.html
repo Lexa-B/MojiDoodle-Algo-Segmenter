@@ -1,0 +1,15 @@
+<div class="canvas-container">
+  <canvas
+    #drawCanvas
+    width="800"
+    height="500"
+    [class.lasso-mode]="mode === 'lasso'"
+    (pointerdown)="onPointerDown($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp()"
+    (pointerleave)="onPointerUp()"
+  ></canvas>
+  <div class="svg-overlay" [innerHTML]="lassoSvgHtml"></div>
+  <div class="svg-overlay" [innerHTML]="segSvgHtml"></div>
+  <div class="mode-badge">{{ mode === 'draw' ? 'Draw' : 'Lasso' }}</div>
+</div>

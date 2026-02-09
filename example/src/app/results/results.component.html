@@ -1,0 +1,46 @@
+<div class="results">
+  <h3>Segmentation Results</h3>
+
+  <div class="stats">
+    <div class="stat">
+      <span class="label">Characters</span>
+      <span class="value">{{ result.characters.length }}</span>
+    </div>
+    <div class="stat">
+      <span class="label">Total strokes</span>
+      <span class="value">{{ result.strokes.length }}</span>
+    </div>
+    <div class="stat">
+      <span class="label">Lassos</span>
+      <span class="value">{{ result.lassos.length }}</span>
+    </div>
+  </div>
+
+  @if (result.characters.length > 0) {
+    <div class="characters">
+      @for (char of result.characters; track char.index) {
+        <div class="character-card">
+          <div class="char-index">#{{ char.index }}</div>
+          <div class="char-detail">{{ char.strokes.length }} strokes</div>
+          <div class="char-detail">
+            {{ char.bounds.width | number:'1.0-0' }} x {{ char.bounds.height | number:'1.0-0' }}px
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (result.lassos.length > 0) {
+    <div class="lasso-info">
+      <h4>Lasso Membership</h4>
+      @for (lasso of result.lassos; track lasso.index) {
+        <div class="lasso-item">
+          Lasso {{ lasso.index }}: {{ lasso.strokeIndices.length }} strokes
+          @if (lasso.strokeIndices.length > 0) {
+            <span class="indices">[{{ lasso.strokeIndices.join(', ') }}]</span>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,29 @@
+<div class="app">
+  <header class="header">
+    <h1>MojiDoodle Algo Segmenter</h1>
+    <p>Draw Japanese characters, create lassos to group strokes</p>
+  </header>
+
+  <app-toolbar
+    [mode]="mode"
+    [maxCharacters]="maxCharacters"
+    (modeChange)="onModeChange($event)"
+    (maxCharactersChange)="onMaxCharactersChange($event)"
+    (undo)="onUndo()"
+    (clear)="onClear()"
+  />
+
+  <app-canvas
+    [strokes]="strokes"
+    [lassos]="lassos"
+    [mode]="mode"
+    [result]="result"
+    (strokeAdded)="onStrokeAdded($event)"
+    (lassoAdded)="onLassoAdded($event)"
+    (lassoDeleted)="onLassoDeleted($event)"
+  />
+
+  @if (result) {
+    <app-results [result]="result" />
+  }
+</div>

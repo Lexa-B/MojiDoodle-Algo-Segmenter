@@ -1,0 +1,88 @@
+.results {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+h3 {
+  color: var(--accent);
+  margin-bottom: 12px;
+  font-size: 1rem;
+}
+
+h4 {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+
+.stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--bg-surface);
+  border-radius: 6px;
+  min-width: 80px;
+}
+
+.stat .label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat .value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.characters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.character-card {
+  background: var(--bg-surface);
+  border-radius: 6px;
+  padding: 10px 14px;
+  min-width: 90px;
+}
+
+.char-index {
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.char-detail {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.lasso-info {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.lasso-item {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 2px 0;
+}
+
+.indices {
+  color: var(--text-primary);
+  font-family: monospace;
+  font-size: 0.75rem;
+}
