@@ -1,8 +1,6 @@
 <div class="canvas-container">
   <canvas
     #drawCanvas
-    width="800"
-    height="500"
     [class.lasso-mode]="mode === 'lasso'"
     (pointerdown)="onPointerDown($event)"
     (pointermove)="onPointerMove($event)"

@@ -21,6 +21,8 @@ export class AppComponent implements OnInit, OnDestroy {
   result: SegmentResult | null = null;
   mode: 'draw' | 'lasso' = 'draw';
   maxCharacters = 3;
+  canvasWidth = 0;
+  canvasHeight = 0;
 
   ngOnInit() {
     this.intervalId = setInterval(() => {
@@ -77,8 +79,14 @@ export class AppComponent implements OnInit, OnDestroy {
     this.dirty = false;
   }
 
+  onCanvasSizeChanged(size: { width: number; height: number }) {
+    this.canvasWidth = size.width;
+    this.canvasHeight = size.height;
+    this.dirty = true;
+  }
+
   private runSegmentation() {
-    if (this.strokes.length === 0) {
+    if (this.strokes.length === 0 || this.canvasWidth === 0 || this.canvasHeight === 0) {
       this.result = null;
       return;
     }
@@ -86,8 +94,8 @@ export class AppComponent implements OnInit, OnDestroy {
     const input: SegmentInput = {
       strokes: this.strokes,
       lassos: this.lassos,
-      canvasWidth: 800,
-      canvasHeight: 500,
+      canvasWidth: this.canvasWidth,
+      canvasHeight: this.canvasHeight,
       maxCharacters: this.maxCharacters,
     };
 

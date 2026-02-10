@@ -1,6 +1,6 @@
 import {
   Component, Input, Output, EventEmitter,
-  ElementRef, ViewChild, AfterViewInit, OnChanges, SimpleChanges,
+  ElementRef, ViewChild, AfterViewInit, OnChanges, OnDestroy, SimpleChanges,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { Point, SegmentResult } from 'mojidoodle-algo-segmenter';
@@ -19,7 +19,7 @@ const LASSO_HUES = [
   templateUrl: './canvas.component.html',
   styleUrl: './canvas.component.css',
 })
-export class CanvasComponent implements AfterViewInit, OnChanges {
+export class CanvasComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('drawCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   @Input() strokes: Point[][] = [];
@@ -30,6 +30,7 @@ export class CanvasComponent implements AfterViewInit, OnChanges {
   @Output() strokeAdded = new EventEmitter<Point[]>();
   @Output() lassoAdded = new EventEmitter<{ x: number; y: number }[]>();
   @Output() lassoDeleted = new EventEmitter<number>();
+  @Output() canvasSizeChanged = new EventEmitter<{ width: number; height: number }>();
 
   segSvgHtml: SafeHtml = '';
   lassoSvgHtml: SafeHtml = '';
@@ -40,13 +41,21 @@ export class CanvasComponent implements AfterViewInit, OnChanges {
   private currentLassoPoints: { x: number; y: number }[] = [];
   private startTime = 0;
   private pointerDownPos: { x: number; y: number } | null = null;
+  private resizeObserver!: ResizeObserver;
 
   constructor(private sanitizer: DomSanitizer) {}
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
     this.ctx = canvas.getContext('2d')!;
-    this.redraw();
+    this.syncCanvasSize();
+
+    this.resizeObserver = new ResizeObserver(() => this.syncCanvasSize());
+    this.resizeObserver.observe(canvas);
+  }
+
+  ngOnDestroy() {
+    this.resizeObserver?.disconnect();
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -158,14 +167,25 @@ export class CanvasComponent implements AfterViewInit, OnChanges {
     return inside;
   }
 
+  private syncCanvasSize() {
+    const canvas = this.canvasRef.nativeElement;
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      this.canvasSizeChanged.emit({ width: w, height: h });
+      this.redraw();
+    }
+  }
+
   private getCanvasPos(event: PointerEvent): { x: number; y: number } {
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
     return {
-      x: (event.clientX - rect.left) * scaleX,
-      y: (event.clientY - rect.top) * scaleY,
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
     };
   }
 
