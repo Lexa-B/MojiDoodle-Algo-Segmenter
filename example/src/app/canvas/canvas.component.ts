@@ -193,11 +193,14 @@ export class CanvasComponent implements AfterViewInit, OnChanges, OnDestroy {
     const canvas = this.canvasRef.nativeElement;
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Build stroke → lasso color map
+    // Build stroke → color maps
     const strokeLassoColor = this.buildStrokeLassoColorMap();
+    const strokeCharColor = this.buildStrokeCharacterColorMap();
 
     for (let i = 0; i < this.strokes.length; i++) {
-      this.drawStroke(this.strokes[i], strokeLassoColor.get(i) ?? '#ffffff');
+      const charColor = strokeCharColor.get(i) ?? '#ffffff';
+      const lassoColor = strokeLassoColor.get(i) ?? '#ffffff';
+      this.drawStroke(this.strokes[i], charColor, lassoColor);
     }
   }
 
@@ -215,23 +218,53 @@ export class CanvasComponent implements AfterViewInit, OnChanges, OnDestroy {
     return map;
   }
 
-  private drawStroke(points: Point[] | { x: number; y: number }[], color: string) {
+  private buildStrokeCharacterColorMap(): Map<number, string> {
+    const map = new Map<number, string>();
+    if (!this.result) return map;
+
+    for (const stroke of this.result.strokes) {
+      if (stroke.characterIndex >= 0) {
+        const hue = LASSO_HUES[stroke.characterIndex % LASSO_HUES.length];
+        map.set(stroke.index, `hsl(${hue}, 95%, 55%)`);
+      }
+    }
+    return map;
+  }
+
+  private drawStroke(points: Point[] | { x: number; y: number }[], color1: string, color2: string) {
     if (points.length < 2) return;
-    this.ctx.strokeStyle = color;
+    const SEGMENT_LEN = 10; // px per dash
     this.ctx.lineWidth = 3;
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
-    this.ctx.beginPath();
-    this.ctx.moveTo(points[0].x, points[0].y);
+
+    let dist = 0;
+    let useFirst = true;
+    let segStart = 0;
+
     for (let i = 1; i < points.length; i++) {
-      this.ctx.lineTo(points[i].x, points[i].y);
+      const dx = points[i].x - points[i - 1].x;
+      const dy = points[i].y - points[i - 1].y;
+      dist += Math.sqrt(dx * dx + dy * dy);
+
+      if (dist >= SEGMENT_LEN || i === points.length - 1) {
+        this.ctx.strokeStyle = useFirst ? color1 : color2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(points[segStart].x, points[segStart].y);
+        for (let j = segStart + 1; j <= i; j++) {
+          this.ctx.lineTo(points[j].x, points[j].y);
+        }
+        this.ctx.stroke();
+        segStart = i;
+        dist = 0;
+        useFirst = !useFirst;
+      }
     }
-    this.ctx.stroke();
   }
 
   private drawCurrentStroke() {
     this.redraw();
-    this.drawStroke(this.currentPoints, '#ffffff');
+    this.drawStroke(this.currentPoints, '#ffffff', '#ffffff');
   }
 
   private drawCurrentLasso() {
