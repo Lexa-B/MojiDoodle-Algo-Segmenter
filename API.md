@@ -249,7 +249,7 @@ interface AnnotatedLasso {
 Canvas-sized SVG containing divider lines between character cells. Dashed gray lines.
 
 ```svg
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600">
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
   <line x1="300" y1="40" x2="300" y2="450"
         stroke="rgba(128,128,128,0.8)" stroke-width="2"
         stroke-dasharray="4,4" />
@@ -274,7 +274,7 @@ Canvas-sized SVG containing divider lines between character cells. Dashed gray l
 Canvas-sized SVG containing lasso polygons with pastel fills and dashed outlines. Each lasso gets a distinct color from a 24-hue palette.
 
 ```svg
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600">
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
   <polygon points="100,50 200,50 200,200 100,200"
            fill="hsla(0,55%,78%,0.15)"
            stroke="hsla(0,55%,78%,0.7)"
@@ -360,5 +360,4 @@ No utility functions are exported. Everything (point-in-polygon, reading order s
 | `maxCharacters: 1` | Skips segmentation. Single `CharacterSlot` with all strokes. Empty `segmentationSvg`. |
 | No lassos | `lassos` output is empty array. No lasso SVG content. Segmentation runs without protected groups. |
 | Lasso with no strokes inside | Lasso appears in `lassos` output with empty `strokeIndices`. Still rendered in `lassoSvg`. |
-| More cells than `maxCharacters` | Module constrains grid to not exceed `maxCharacters` cells. |
 | Strokes not in any cell | `characterIndex: -1` in annotated strokes. Not included in any `CharacterSlot`. |
