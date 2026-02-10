@@ -10,5 +10,5 @@ import type { SegmentResult } from 'mojidoodle-algo-segmenter';
   styleUrl: './results.component.css',
 })
 export class ResultsComponent {
-  @Input() result!: SegmentResult;
+  @Input() result: SegmentResult | null = null;
 }

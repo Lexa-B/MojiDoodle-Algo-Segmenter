@@ -13,17 +13,21 @@
     (clear)="onClear()"
   />
 
-  <app-canvas
-    [strokes]="strokes"
-    [lassos]="lassos"
-    [mode]="mode"
-    [result]="result"
-    (strokeAdded)="onStrokeAdded($event)"
-    (lassoAdded)="onLassoAdded($event)"
-    (lassoDeleted)="onLassoDeleted($event)"
-  />
+  <div class="main-content">
+    <div class="panel-results">
+      <app-results [result]="result" />
+    </div>
 
-  @if (result) {
-    <app-results [result]="result" />
-  }
+    <div class="panel-canvas">
+      <app-canvas
+        [strokes]="strokes"
+        [lassos]="lassos"
+        [mode]="mode"
+        [result]="result"
+        (strokeAdded)="onStrokeAdded($event)"
+        (lassoAdded)="onLassoAdded($event)"
+        (lassoDeleted)="onLassoDeleted($event)"
+      />
+    </div>
+  </div>
 </div>
