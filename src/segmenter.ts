@@ -40,8 +40,13 @@ export class Segmenter {
           input.canvasHeight,
         );
 
+    // Use shrink-wrapped convex hulls when available, fall back to raw polygon
+    const lassoSvgPolygons = input.lassos.map((lasso, i) => {
+      const hull = pipelineResult.protectedBounds.get(i);
+      return (hull && hull.length >= 3) ? hull : lasso.points;
+    });
     const lassoSvg = generateLassoSvg(
-      input.lassos.map(l => l.points),
+      lassoSvgPolygons,
       input.canvasWidth,
       input.canvasHeight,
     );

@@ -211,12 +211,25 @@ function buildSingleCharResult(
 
   const annotatedLassos = buildAnnotatedLassos(lassoPolygons, manualGroups);
 
+  // Compute convex hulls for manual groups
+  const protectedBounds: Map<number, { x: number; y: number }[]> = new Map();
+  for (const [lassoIdx, strokeIndices] of manualGroups) {
+    const allPoints: { x: number; y: number }[] = [];
+    for (const si of strokeIndices) {
+      for (const p of strokes[si]) {
+        allPoints.push({ x: p.x, y: p.y });
+      }
+    }
+    const hull = convexHull(allPoints);
+    protectedBounds.set(lassoIdx, hull);
+  }
+
   return {
     characters: [character],
     strokes: annotatedStrokes,
     lassos: annotatedLassos,
     columnDividers: [],
     rowDividers: [],
-    protectedBounds: new Map(),
+    protectedBounds,
   };
 }
