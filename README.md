@@ -120,14 +120,15 @@ Two-pass column-based segmentation for Japanese vertical writing (top-to-bottom,
 1. Calculate stroke bounding boxes
 2. Estimate character dimensions from median stroke size
 3. **Pass 1:** Find column dividers from X-gaps
-4. Add inter-lasso column dividers
-5. Enforce column width uniformity
+4. Add inter-protected-bound column dividers (mandatory)
+5. Enforce column width uniformity (skips mandatory dividers)
 6. Assign strokes to columns (rightmost = column 0)
 7. **Pass 2:** Find row dividers per column from Y-gaps
-8. Add inter-lasso row dividers
-9. Enforce row height uniformity
-10. Enforce columns <= maxRows constraint
-11. Build CharacterSlots, annotate strokes, generate SVGs
+8. Add inter-protected-bound row dividers (mandatory)
+9. Enforce row height uniformity (skips mandatory dividers)
+10. Enforce columns <= maxRows constraint (skips mandatory dividers)
+11. Re-add inter-protected-bound row dividers lost in step 10
+12. Build CharacterSlots, annotate strokes, generate SVGs
 
 ## Example App
 
@@ -147,7 +148,7 @@ Open `http://localhost:4201` to draw strokes, create lassos, and see live segmen
 npm install          # Install dependencies
 npm run build        # Build (tsc -> dist/)
 npm run typecheck    # Type check
-npm test             # Run tests (41 tests, vitest)
+npm test             # Run tests (44 tests, vitest)
 npm run test:watch   # Watch mode
 ```
 

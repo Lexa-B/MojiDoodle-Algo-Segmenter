@@ -128,21 +128,23 @@ Here's the full algorithm walkthrough, from entry point to final output.
   perfectly vertical line at x. The start/end values are the Y extent (overall minY - 10
    to maxY + 10, with 10px padding).
 
-  Step 4b: Add Inter-Lasso Column Dividers
+  Step 4b: Add Inter-Protected-Bound Column Dividers
 
-  If there are 2+ protected bounds, force dividers between groups that are side-by-side
+  If there are 2+ protected bounds, force dividers between groups that are separated
   horizontally (even if the natural gap was too small to trigger in step 4).
 
   1. For each protected bound, compute its axis-aligned bounding box from its hull
   vertices (min/max in both the primary and perpendicular dimensions).
-  1. Sort bounds by their min position on the primary axis.
-  2. Walk consecutive pairs. Skip if they overlap significantly (> 50% of the smaller
-  group's size) on the primary axis — unless they also overlap > 30% on the
-  perpendicular axis (meaning they're truly side-by-side, not stacked). This heuristic
-  distinguishes "two groups in separate columns" from "two groups representing
-  characters in the same column."
-  1. For qualifying pairs, place a divider at (current.max + next.min) / 2.
-  2. Skip if a divider already exists within 10px of that position.
+  2. Sort bounds by their min position on the primary axis.
+  3. Walk consecutive pairs. Compute the boundary midpoint between adjacent hull extents.
+  4. Check wouldSplitProtectedBound(boundary, dimension, protectedBounds) — if the
+  divider would cut through a hull, skip it (the bounds are in the same column and row
+  dividers will handle separation).
+  5. For qualifying pairs, place a divider at (current.max + next.min) / 2.
+  6. If a divider already exists within 10px, promote it to mandatory instead of adding
+  a duplicate. New dividers are marked mandatory: true.
+
+  Mandatory dividers cannot be removed by uniformity enforcement (steps 5, 8, 9).
 
   Step 5: Enforce Column Width Uniformity (uniformity.ts:enforceColumnUniformity)
 
@@ -156,7 +158,8 @@ Here's the full algorithm walkthrough, from entry point to final output.
     - Split: Place a new divider at the midpoint of the widest column (rejected if it
   would split a protected bound).
     - Merge: Remove the divider bordering the narrowest column (tries merging left
-  neighbor, then right neighbor, picks the better one).
+  neighbor, then right neighbor, picks the better one). Mandatory dividers are never
+  merge candidates.
   4. Apply the best action and repeat.
 
   Step 6: Assign Strokes to Columns (column-detection.ts:assignStrokesToColumns)
@@ -192,13 +195,16 @@ Here's the full algorithm walkthrough, from entry point to final output.
   getColumnXBounds, which uses the divider positions to determine the left/right edges
   of each column).
 
-  Step 7b: Add Inter-Lasso Row Dividers (protected-groups.ts:addInterLassoRowDividers)
+  Step 7b: Add Inter-Protected-Bound Row Dividers (protected-groups.ts:addInterLassoRowDividers)
 
   Same concept as step 4b, but for rows within each column. For each column:
   1. Find which protected bounds have strokes in this column (using strokeIndices).
   2. Compute each group's Y bounds within this column from its strokes' bounding boxes.
-  3. Force dividers between groups that are stacked vertically (not overlapping > 50% in
-   Y).
+  3. Walk consecutive pairs and always place a divider between distinct protected bounds.
+  No overlap skip — even if two groups' stroke Y-ranges overlap significantly (e.g. a
+  small っ overlapping with い), they always get separated.
+  4. New dividers are marked mandatory: true. If a nearby divider already exists within
+  10px, it is promoted to mandatory instead of adding a duplicate.
 
   Step 8: Enforce Row Height Uniformity (uniformity.ts:enforceRowUniformity)
 
@@ -206,7 +212,7 @@ Here's the full algorithm walkthrough, from entry point to final output.
   each column:
   1. Compute row heights from the column's Y extent and row divider positions.
   2. If ratio > maxSizeRatio, split the tallest or merge the smallest, whichever helps
-  more.
+  more. Mandatory dividers are never merge candidates.
   3. Repeat up to 10 times.
 
   Step 9: Enforce Columns <= Max Rows (uniformity.ts:enforceColumnsNotExceedRows)
@@ -220,8 +226,17 @@ Here's the full algorithm walkthrough, from entry point to final output.
   2. If columns <= maxRows, done.
   3. Otherwise, remove a column divider — specifically the one where the two adjacent
   columns have the smallest combined width (merge the two thinnest neighboring columns).
+  Mandatory dividers are skipped; if all remaining dividers are mandatory, the loop
+  breaks.
   4. After removing a column divider, re-run stroke assignment and row
   detection/uniformity for the new column layout.
+
+  Step 9b: Re-Add Inter-Protected-Bound Row Dividers
+
+  After step 9 recomputes rows from scratch, mandatory inter-protected-bound row dividers
+  may have been lost. Re-apply addInterLassoRowDividers followed by enforceRowUniformity
+  to restore them. This ensures every pair of distinct protected bounds in the same column
+  retains a divider.
 
   ---
   Step 10: Create Cell Grid (cell-grid.ts:createCellGrid)

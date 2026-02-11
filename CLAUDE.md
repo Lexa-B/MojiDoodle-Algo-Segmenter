@@ -56,7 +56,7 @@ src/
   types.ts                      # All public types (Point, SegmentInput, SegmentResult, etc.)
   segmenter.ts                  # Segmenter class, segment() convenience fn, DEFAULT_CONFIG
   internal/
-    types.ts                    # Internal types (StrokeBounds, DividerLine, GridCell, etc.)
+    types.ts                    # Internal types (StrokeBounds, DividerLine w/ mandatory flag, GridCell, etc.)
     pipeline.ts                 # Core orchestrator — runPipeline() calling all steps
     stroke-bounds.ts            # calculateStrokeBounds(), estimateCharSize()
     column-detection.ts         # findColumnDividers(), assignStrokesToColumns()
@@ -69,19 +69,20 @@ src/
     svg-generator.ts            # generateSegmentationSvg(), generateLassoSvg()
 ```
 
-### Internal algorithm (10-step pipeline)
+### Internal algorithm (12-step pipeline)
 
 1. Calculate stroke bounding boxes
 2. Estimate character dimensions (median stroke size x 2, clamped 8-40% of canvas)
 3. **Pass 1:** Find column dividers from X-gaps between strokes
-4. Add inter-lasso column dividers (force splits between different lassos)
-5. Enforce column width uniformity (max/min ratio <= 2.0)
+4. Add inter-protected-bound column dividers (mandatory — cannot be removed by uniformity)
+5. Enforce column width uniformity (max/min ratio <= 2.0, skips mandatory dividers)
 6. Assign strokes to columns (rightmost = column 0, Japanese reading order)
 7. **Pass 2:** Find row dividers per column from Y-gaps
-8. Add inter-lasso row dividers per column
-9. Enforce row height uniformity per column
-10. Enforce columns <= maxRows (Japanese vertical writing constraint)
-11. Build output: create CharacterSlots from cells, annotate strokes, generate SVGs
+8. Add inter-protected-bound row dividers per column (mandatory)
+9. Enforce row height uniformity per column (skips mandatory dividers)
+10. Enforce columns <= maxRows (Japanese vertical writing constraint, skips mandatory dividers)
+11. Re-add inter-protected-bound row dividers lost in step 10
+12. Build output: create CharacterSlots from cells, annotate strokes, generate SVGs
 
 ### What was extracted from the monolith
 
@@ -133,9 +134,9 @@ npx ng build --base-href /MojiDoodle-Algo-Segmenter/   # Production build for Gi
 
 ## Tests
 
-41 tests across 4 suites:
+44 tests across 4 suites:
 
-- `tests/segmenter.test.ts` — Integration: full segment() input->output (10 tests)
+- `tests/segmenter.test.ts` — Integration: full segment() input->output, adjacent protected bounds (13 tests)
 - `tests/edge-cases.test.ts` — Edge cases from API.md: empty input, maxCharacters:1, passthrough refs (10 tests)
 - `tests/lasso-containment.test.ts` — Point-in-polygon, containment threshold, protected groups (13 tests)
 - `tests/svg-generator.test.ts` — SVG output correctness, viewBox, dividers, lasso polygons (8 tests)
