@@ -72,14 +72,22 @@ export function buildAnnotatedStrokesFromCells(
   }));
 }
 
-/** Build AnnotatedLassos from pre-computed manual groups. */
+/** Build AnnotatedLassos from pre-computed manual groups. Empty lassos are excluded. */
 export function buildAnnotatedLassos(
   lassoPolygons: { x: number; y: number }[][],
   manualGroups: Map<number, number[]>,
 ): AnnotatedLasso[] {
-  return lassoPolygons.map((polygon, idx) => ({
-    index: idx,
-    points: polygon,
-    strokeIndices: manualGroups.get(idx) ?? [],
-  }));
+  const result: AnnotatedLasso[] = [];
+  let outputIdx = 0;
+  for (let i = 0; i < lassoPolygons.length; i++) {
+    const strokeIndices = manualGroups.get(i);
+    if (strokeIndices && strokeIndices.length > 0) {
+      result.push({
+        index: outputIdx++,
+        points: lassoPolygons[i],
+        strokeIndices,
+      });
+    }
+  }
+  return result;
 }

@@ -58,7 +58,7 @@ describe('edge cases', () => {
     expect(result.lassoSvg).not.toContain('polygon');
   });
 
-  it('lasso with no strokes inside has empty strokeIndices', () => {
+  it('lasso with no strokes inside is excluded from output', () => {
     const strokes = makeCharacterStrokes(100, 100, 60);
     // Lasso far from strokes
     const lasso = makeLasso(600, 400, 700, 500);
@@ -69,10 +69,23 @@ describe('edge cases', () => {
       maxCharacters: 1,
     }));
 
+    expect(result.lassos.length).toBe(0);
+    expect(result.lassoSvg).not.toContain('polygon');
+  });
+
+  it('lasso emptied by stealing is excluded from output', () => {
+    const strokes = makeCharacterStrokes(150, 150, 60);
+    const lassoA = makeLasso(100, 100, 200, 200); // covers strokes
+    const lassoB = makeLasso(100, 100, 200, 200); // same area, steals all strokes
+
+    const result = segment(makeInput({
+      strokes,
+      lassos: [lassoA, lassoB],
+      maxCharacters: 1,
+    }));
+
     expect(result.lassos.length).toBe(1);
-    expect(result.lassos[0].strokeIndices).toEqual([]);
-    // Still rendered in lassoSvg
-    expect(result.lassoSvg).toContain('polygon');
+    expect(result.lassos[0].strokeIndices.length).toBeGreaterThan(0);
   });
 
   it('unassigned strokes get characterIndex: -1', () => {
