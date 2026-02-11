@@ -81,7 +81,7 @@ Pure function, no side effects, ~1ms.
 |-------|------|-------------|
 | `characters` | `CharacterSlot[]` | Sorted Japanese reading order, each has strokes + bounds |
 | `strokes` | `AnnotatedStroke[]` | Input strokes with `characterIndex` (-1 if unassigned) |
-| `lassos` | `AnnotatedLasso[]` | Input lassos with computed `strokeIndices` |
+| `lassos` | `AnnotatedLasso[]` | Non-empty lassos with computed `strokeIndices` |
 | `segmentationSvg` | `string` | Canvas-sized SVG of divider lines |
 | `lassoSvg` | `string` | Canvas-sized SVG of lasso polygons |
 
@@ -107,10 +107,10 @@ Convenience function using default config.
 
 | Scenario | Behavior |
 |----------|----------|
-| Empty strokes (`[]`) | Empty `characters`, empty `strokes`, passthrough `lassos`, empty SVGs |
+| Empty strokes (`[]`) | Empty `characters`, empty `strokes`, empty `lassos`, empty SVGs |
 | `maxCharacters: 1` | Single `CharacterSlot` with all strokes. Empty `segmentationSvg`. |
 | No lassos | Empty `lassos` array. No lasso SVG content. Segmentation runs without protected groups. |
-| Lasso with no strokes inside | Lasso in output with empty `strokeIndices`. Still rendered in `lassoSvg`. |
+| Lasso with no strokes inside | Excluded from `lassos` output and `lassoSvg`. |
 | Strokes not in any cell | `characterIndex: -1` in annotated strokes. Not in any `CharacterSlot`. |
 
 ## How It Works
@@ -148,7 +148,7 @@ Open `http://localhost:4201` to draw strokes, create lassos, and see live segmen
 npm install          # Install dependencies
 npm run build        # Build (tsc -> dist/)
 npm run typecheck    # Type check
-npm test             # Run tests (44 tests, vitest)
+npm test             # Run tests (45 tests, vitest)
 npm run test:watch   # Watch mode
 ```
 

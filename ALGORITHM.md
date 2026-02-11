@@ -275,10 +275,12 @@ Here's the full algorithm walkthrough, from entry point to final output.
 
   buildAnnotatedLassos(lassoPolygons, manualGroups)
 
-  Directly emits AnnotatedLasso entries from the pre-computed manualGroups. No
-  re-computation of containment — the group assignments from step 0 (including
-  last-lasso-wins stealing) are used as-is. Each AnnotatedLasso gets its index, original
-  polygon points, and the final strokeIndices from manualGroups.
+  Emits AnnotatedLasso entries from the pre-computed manualGroups, filtering out any
+  lassos with no strokes (either because they never contained any, or because all their
+  strokes were stolen by a later lasso). No re-computation of containment — the group
+  assignments from step 0 (including last-lasso-wins stealing) are used as-is. Each
+  surviving AnnotatedLasso gets a reindexed index (0, 1, 2, ...), its original polygon
+  points, and the final strokeIndices from manualGroups.
 
   ---
   SVG Generation (svg-generator.ts)

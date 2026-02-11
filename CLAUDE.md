@@ -42,7 +42,7 @@ segmenter.segment({
 {
   characters: CharacterSlot[],   // sorted Japanese reading order, each has strokes + bounds
   strokes: AnnotatedStroke[],    // input strokes with characterIndex (-1 if unassigned)
-  lassos: AnnotatedLasso[],      // input lassos with computed strokeIndices
+  lassos: AnnotatedLasso[],      // only non-empty lassos with computed strokeIndices
   segmentationSvg: string,       // canvas-sized SVG of divider lines (with viewBox)
   lassoSvg: string,              // canvas-sized SVG of lasso polygons (with viewBox)
 }
@@ -134,10 +134,10 @@ npx ng build --base-href /MojiDoodle-Algo-Segmenter/   # Production build for Gi
 
 ## Tests
 
-44 tests across 4 suites:
+45 tests across 4 suites:
 
 - `tests/segmenter.test.ts` — Integration: full segment() input->output, adjacent protected bounds (13 tests)
-- `tests/edge-cases.test.ts` — Edge cases from API.md: empty input, maxCharacters:1, passthrough refs (10 tests)
+- `tests/edge-cases.test.ts` — Edge cases from API.md: empty input, maxCharacters:1, passthrough refs, empty lasso filtering (11 tests)
 - `tests/lasso-containment.test.ts` — Point-in-polygon, containment threshold, protected groups (13 tests)
 - `tests/svg-generator.test.ts` — SVG output correctness, viewBox, dividers, lasso polygons (8 tests)
 - `tests/fixtures/helpers.ts` — Test utilities: makePoint(), makeStroke(), makeCharacterStrokes(), makeLasso(), makeInput()
