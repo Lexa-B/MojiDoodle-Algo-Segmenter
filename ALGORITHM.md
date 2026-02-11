@@ -11,7 +11,7 @@ Here's the full algorithm walkthrough, from entry point to final output.
   - minColumnGapRatio: 0.25 — minimum horizontal gap (as fraction of estimated char
   width) to count as a column break
   - minRowGapRatio: 0.25 — same for vertical/row breaks
-  - charSizeMultiplier: 2.0 — median stroke size × this = estimated character size
+  - charSizeMultiplier: 2.0 — median stroke size x this = estimated character size
   - minCharSizeRatio: 0.08 — char size floor (fraction of canvas)
   - maxCharSizeRatio: 0.40 — char size ceiling (fraction of canvas)
   - maxSizeRatio: 2.0 — max allowed ratio between largest/smallest cell before
@@ -26,15 +26,38 @@ Here's the full algorithm walkthrough, from entry point to final output.
   ---
   The Pipeline: runPipeline() (pipeline.ts)
 
+  Step 0: Build Manual Groups (lasso-containment.ts:findStrokesInLasso)
+
+  Before anything else, the pipeline resolves lasso ownership. This runs before the
+  early exits so that manual groups and annotated lassos are always available.
+
+  For each input lasso polygon, determine which strokes it "mostly covers" using
+  ray-casting point-in-polygon containment. A stroke belongs to a lasso if the fraction
+  of its points inside the polygon >= lassoContainmentThreshold (default 0.5).
+
+  Ownership rules:
+  - Lassos are processed in input order. Later lassos win.
+  - If a stroke is already claimed by a prior lasso, it is removed from the old group.
+  - If this causes the old group to lose all its strokes, that group is deleted entirely.
+  - Lassos that contain zero strokes (after containment check) are never created — they
+  don't enter any data structure.
+
+  The result is two parallel structures:
+  - lassoPolygons: {x,y}[][] — only polygons that have at least one stroke
+  - manualGroups: Map<lassoIndex, strokeIndex[]> — stroke assignments, keyed by index
+  into lassoPolygons
+
+  Each stroke belongs to at most one group. Logged as [MANUAL_GROUPS] for debugging.
+
   Early exits
 
-  Empty strokes — returns immediately: no characters, no strokes, only annotated lassos
-  (which get built regardless).
+  Empty strokes — returns immediately: no characters, no strokes, annotated lassos from
+  manualGroups (typically empty since no strokes means no containment).
 
   maxCharacters === 1 — calls buildSingleCharResult(): computes a single bounding box
   across all stroke points, creates one CharacterSlot at index 0 containing all strokes,
-   marks every stroke with characterIndex: 0, and builds annotated lassos. No dividers
-  are produced.
+  marks every stroke with characterIndex: 0, and builds annotated lassos from
+  manualGroups. No dividers are produced.
 
   Step 1: Calculate Stroke Bounding Boxes (stroke-bounds.ts:calculateStrokeBounds)
 
@@ -48,12 +71,31 @@ Here's the full algorithm walkthrough, from entry point to final output.
   everything drawn on the canvas. This is used later as the outer boundary when
   computing column widths.
 
+  Step 2c: Compute Protected Bounds (convex-hull.ts:convexHull)
+
+  For each manual group, collect all points from all of its strokes and compute the
+  convex hull — the tightest convex polygon that encompasses every point. This
+  "shrink-wraps" the lasso to the actual ink, discarding any empty space the user's
+  freehand lasso included.
+
+  Uses Andrew's monotone chain algorithm: sort points by X then Y, build lower and upper
+  hulls by walking left-to-right and right-to-left, rejecting points that make a
+  clockwise turn (cross product <= 0). Returns vertices in counter-clockwise order.
+
+  The result is protectedBounds: a Map<lassoIndex, {x,y}[]>. Each entry is a convex hull
+  polygon. Logged as [PROTECTED_BOUNDS] for debugging. These hulls are also used for the
+  lasso SVG overlay (see SVG Generation below).
+
+  A ProtectedBound[] array is then built by combining each manual group's strokeIndices
+  with its hull. This is the structure passed to all downstream steps to prevent
+  dividers from splitting user-grouped strokes.
+
   Step 3: Estimate Character Dimensions (stroke-bounds.ts:estimateCharSize)
 
   Called twice — once for width, once for height. The logic:
 
   1. Compute the width (or height) of every stroke's bounding box.
-  2. Filter out tiny strokes (size ≤ 5px) — these are dots/ticks that would skew the
+  2. Filter out tiny strokes (size <= 5px) — these are dots/ticks that would skew the
   estimate.
   3. Sort the remaining sizes and take the median.
   4. Multiply by charSizeMultiplier (default 2.0) — the idea is that a typical stroke is
@@ -68,25 +110,6 @@ Here's the full algorithm walkthrough, from entry point to final output.
   character. These are used as the ruler for deciding what constitutes a "big enough
   gap" to split columns/rows.
 
-  Step 3b: Build Protected Groups (lasso-containment.ts:buildProtectedGroups)
-
-  Before finding dividers, the algorithm needs to know which strokes the user has
-  explicitly grouped via lasso polygons.
-
-  For each lasso polygon:
-  1. For each stroke, count how many of its points fall inside the polygon using
-  ray-casting point-in-polygon (isPointInPolygon).
-  2. If the fraction of contained points ≥ lassoContainmentThreshold (default 0.5), that
-   stroke belongs to this lasso.
-  3. The resulting set of stroke indices becomes a ProtectedGroup.
-
-  Ray-casting algorithm (isPointInPolygon): Casts a horizontal ray from the test point
-  to the right. Counts how many polygon edges the ray crosses. Odd crossings = inside,
-  even = outside. This is the classic O(n) point-in-polygon test.
-
-  Protected groups are used throughout the rest of the pipeline to prevent dividers from
-   splitting user-grouped strokes.
-
   ---
   Step 4: Find Column Dividers — Pass 1 (column-detection.ts:findColumnDividers)
 
@@ -94,32 +117,32 @@ Here's the full algorithm walkthrough, from entry point to final output.
 
   1. Sort all strokes by centerX (left to right).
   2. Walk consecutive pairs. Compute the gap between current.maxX and next.minX.
-  3. If the gap ≥ charWidth * minColumnGapRatio (default: 25% of estimated char width),
+  3. If the gap >= charWidth * minColumnGapRatio (default: 25% of estimated char width),
   it's a candidate column break.
   4. Place a vertical divider at the midpoint of each gap: x = (gapStart + gapEnd) / 2.
-  5. Filter: Reject any divider that would split a protected group. This is checked by
-  wouldSplitProtectedGroup: for each protected group with 2+ strokes, if the divider's X
-   falls between the min and max centerX of the group's strokes, it would split them —
-  so it's rejected.
+  5. Filter: Reject any divider that would split a protected bound. This is checked by
+  wouldSplitProtectedBound: if the divider's X falls between the min and max X of a
+  hull's vertices, it would cut through that group — so it's rejected.
 
   The divider is stored as a DividerLine with slope: 0 and intercept: x, meaning it's a
   perfectly vertical line at x. The start/end values are the Y extent (overall minY - 10
    to maxY + 10, with 10px padding).
 
-  Step 4b: Add Inter-Lasso Column Dividers (protected-groups.ts:addInterLassoDividers)
+  Step 4b: Add Inter-Lasso Column Dividers
 
-  If there are 2+ protected groups, force dividers between groups that are side-by-side
+  If there are 2+ protected bounds, force dividers between groups that are side-by-side
   horizontally (even if the natural gap was too small to trigger in step 4).
 
-  1. For each protected group, compute its bounding box in X (and also Y, the
-  "perpendicular" axis).
-  2. Sort groups by their min X.
-  3. Walk consecutive pairs. Skip if they overlap significantly (> 50% of the smaller
-  group's size) in X — unless they also overlap > 30% in Y (meaning they're truly
-  side-by-side, not stacked). This heuristic distinguishes "two groups in separate
-  columns" from "two groups representing characters in the same column."
-  4. For qualifying pairs, place a divider at (current.maxX + next.minX) / 2.
-  5. Skip if a divider already exists within 10px of that position.
+  1. For each protected bound, compute its axis-aligned bounding box from its hull
+  vertices (min/max in both the primary and perpendicular dimensions).
+  1. Sort bounds by their min position on the primary axis.
+  2. Walk consecutive pairs. Skip if they overlap significantly (> 50% of the smaller
+  group's size) on the primary axis — unless they also overlap > 30% on the
+  perpendicular axis (meaning they're truly side-by-side, not stacked). This heuristic
+  distinguishes "two groups in separate columns" from "two groups representing
+  characters in the same column."
+  1. For qualifying pairs, place a divider at (current.max + next.min) / 2.
+  2. Skip if a divider already exists within 10px of that position.
 
   Step 5: Enforce Column Width Uniformity (uniformity.ts:enforceColumnUniformity)
 
@@ -131,7 +154,7 @@ Here's the full algorithm walkthrough, from entry point to final output.
   2. If max(widths) / min(widths) <= maxSizeRatio, done.
   3. Otherwise, try two strategies and pick whichever reduces the ratio more:
     - Split: Place a new divider at the midpoint of the widest column (rejected if it
-  would split a protected group).
+  would split a protected bound).
     - Merge: Remove the divider bordering the narrowest column (tries merging left
   neighbor, then right neighbor, picks the better one).
   4. Apply the best action and repeat.
@@ -160,10 +183,10 @@ Here's the full algorithm walkthrough, from entry point to final output.
   1. Get the strokes assigned to this column.
   2. Sort by centerY (top to bottom).
   3. Walk consecutive pairs, compute Y-gaps.
-  4. If gap ≥ charHeight * minRowGapRatio, place a horizontal divider at the gap's
+  4. If gap >= charHeight * minRowGapRatio, place a horizontal divider at the gap's
   midpoint.
-  5. Filter out any divider that would split a protected group (same check as columns,
-  but on Y axis).
+  5. Filter out any divider that would split a protected bound (same hull-extent check
+  as columns, but on the Y axis).
 
   Row dividers are bounded horizontally by the column's X bounds (computed by
   getColumnXBounds, which uses the divider positions to determine the left/right edges
@@ -172,8 +195,8 @@ Here's the full algorithm walkthrough, from entry point to final output.
   Step 7b: Add Inter-Lasso Row Dividers (protected-groups.ts:addInterLassoRowDividers)
 
   Same concept as step 4b, but for rows within each column. For each column:
-  1. Find which protected groups have strokes in this column.
-  2. Compute each group's Y bounds within this column.
+  1. Find which protected bounds have strokes in this column (using strokeIndices).
+  2. Compute each group's Y bounds within this column from its strokes' bounding boxes.
   3. Force dividers between groups that are stacked vertically (not overlapping > 50% in
    Y).
 
@@ -186,7 +209,7 @@ Here's the full algorithm walkthrough, from entry point to final output.
   more.
   3. Repeat up to 10 times.
 
-  Step 9: Enforce Columns ≤ Max Rows (uniformity.ts:enforceColumnsNotExceedRows)
+  Step 9: Enforce Columns <= Max Rows (uniformity.ts:enforceColumnsNotExceedRows)
 
   Japanese vertical writing constraint: you shouldn't have more columns than the maximum
    number of rows in any column. For example, if all columns have 3 rows, you shouldn't
@@ -194,7 +217,7 @@ Here's the full algorithm walkthrough, from entry point to final output.
 
   Iterates up to 10 times:
   1. Count columns (columnDividers.length + 1) and the max rows across all columns.
-  2. If columns ≤ maxRows, done.
+  2. If columns <= maxRows, done.
   3. Otherwise, remove a column divider — specifically the one where the two adjacent
   columns have the smallest combined width (merge the two thinnest neighboring columns).
   4. After removing a column divider, re-run stroke assignment and row
@@ -230,16 +253,17 @@ Here's the full algorithm walkthrough, from entry point to final output.
   buildAnnotatedStrokesFromCells(strokes, cells)
 
   1. Sort cells the same way as above.
-  2. Build a map: strokeIndex → characterIndex.
+  2. Build a map: strokeIndex -> characterIndex.
   3. For each input stroke, emit an AnnotatedStroke with its original index, original
   points (same reference), and characterIndex from the map (or -1 if the stroke didn't
   land in any cell).
 
-  buildAnnotatedLassos(strokes, lassoPolygons, threshold)
+  buildAnnotatedLassos(lassoPolygons, manualGroups)
 
-  For each lasso polygon, re-run findStrokesInLasso to compute which strokes it contains
-   (same ray-casting + threshold logic as step 3b). Each AnnotatedLasso gets its
-  original index, original points, and the computed strokeIndices.
+  Directly emits AnnotatedLasso entries from the pre-computed manualGroups. No
+  re-computation of containment — the group assignments from step 0 (including
+  last-lasso-wins stealing) are used as-is. Each AnnotatedLasso gets its index, original
+  polygon points, and the final strokeIndices from manualGroups.
 
   ---
   SVG Generation (svg-generator.ts)
@@ -254,15 +278,17 @@ Here's the full algorithm walkthrough, from entry point to final output.
   - Row dividers: rendered as horizontal dashed lines with the same style. Each row
   divider set is scoped to its column's X bounds (start to end).
 
-  generateLassoSvg(lassoPolygons, canvasWidth, canvasHeight)
+  generateLassoSvg(hullPolygons, canvasWidth, canvasHeight)
 
-  Creates an SVG element with filled/stroked polygons for each lasso.
+  Creates an SVG element with filled/stroked polygons. Renders the protectedBounds
+  convex hulls (from step 2c) instead of the raw lasso polygons. Only groups that have
+  strokes and a valid hull produce a polygon.
 
   - Uses the LASSO_HUES array (24 values in a spread-out "lug-nut" pattern so adjacent
   lassos get very different colors): [0, 165, 330, 135, 300, ...]
-  - Each polygon: fill="hsla(hue, 55%, 78%, 0.15)" (subtle pastel fill),
+  - Each polygon: fill="hsla(hue, 55%, 78%, 0.075)" (subtle pastel fill),
   stroke="hsla(hue, 55%, 78%, 0.7)" (more visible border), dashed stroke.
-  - Polygons skip any lasso with fewer than 3 points.
+  - Polygons skip any input with fewer than 3 points.
 
   ---
   Back in Segmenter.segment()
@@ -272,9 +298,9 @@ Here's the full algorithm walkthrough, from entry point to final output.
   {
     characters,        // CharacterSlot[] — sorted Japanese reading order
     strokes,           // AnnotatedStroke[] — same order as input, with characterIndex
-    lassos,            // AnnotatedLasso[] — same order as input, with strokeIndices
+    lassos,            // AnnotatedLasso[] — only lassos with strokes, with final strokeIndices
     segmentationSvg,   // SVG overlay of divider lines
-    lassoSvg,          // SVG overlay of lasso polygons
+    lassoSvg,          // SVG overlay of protected bounds (convex hulls)
   }
 
   The entire operation is pure and synchronous — no state mutation, no async, no DOM.

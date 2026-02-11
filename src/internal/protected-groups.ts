@@ -1,59 +1,44 @@
-import type { StrokeBounds, DividerLine, ProtectedGroup } from './types.js';
+import type { StrokeBounds, DividerLine, ProtectedBound } from './types.js';
 
-/** Check if a divider at the given position would split any protected group. */
-export function wouldSplitProtectedGroup(
+/** Check if a divider at the given position would split any protected bound's convex hull. */
+export function wouldSplitProtectedBound(
   dividerPosition: number,
   dimension: 'x' | 'y',
-  strokeBounds: StrokeBounds[],
-  protectedGroups: ProtectedGroup[],
+  protectedBounds: ProtectedBound[],
 ): boolean {
-  for (const group of protectedGroups) {
-    if (group.strokeIndices.length < 2) continue;
+  for (const bound of protectedBounds) {
+    if (bound.hull.length < 3) continue;
 
-    const groupStrokes = group.strokeIndices
-      .filter(i => i < strokeBounds.length)
-      .map(i => strokeBounds[i]);
+    const values = bound.hull.map(p => dimension === 'x' ? p.x : p.y);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
 
-    if (groupStrokes.length < 2) continue;
-
-    const positions = groupStrokes.map(s =>
-      dimension === 'x' ? s.centerX : s.centerY
-    );
-    const minPos = Math.min(...positions);
-    const maxPos = Math.max(...positions);
-
-    if (dividerPosition > minPos && dividerPosition < maxPos) {
+    if (dividerPosition > min && dividerPosition < max) {
       return true;
     }
   }
   return false;
 }
 
-/** Add dividers between different lassos based on their bounding boxes. */
+/** Add dividers between different protected bounds based on their hull bounding boxes. */
 export function addInterLassoDividers(
   dividers: DividerLine[],
   strokeBounds: StrokeBounds[],
-  protectedGroups: ProtectedGroup[],
+  protectedBounds: ProtectedBound[],
   dimension: 'x' | 'y',
 ): DividerLine[] {
-  if (protectedGroups.length < 2) return dividers;
+  if (protectedBounds.length < 2) return dividers;
 
-  const lassoBounds: { lassoIdx: number; min: number; max: number; perpMin: number; perpMax: number }[] = [];
-  for (let i = 0; i < protectedGroups.length; i++) {
-    const group = protectedGroups[i];
-    if (group.strokeIndices.length === 0) continue;
+  const lassoBounds: { idx: number; min: number; max: number; perpMin: number; perpMax: number }[] = [];
+  for (let i = 0; i < protectedBounds.length; i++) {
+    const hull = protectedBounds[i].hull;
+    if (hull.length < 3) continue;
 
-    const groupStrokes = group.strokeIndices
-      .filter(idx => idx < strokeBounds.length)
-      .map(idx => strokeBounds[idx]);
-
-    if (groupStrokes.length === 0) continue;
-
-    const min = Math.min(...groupStrokes.map(s => dimension === 'x' ? s.minX : s.minY));
-    const max = Math.max(...groupStrokes.map(s => dimension === 'x' ? s.maxX : s.maxY));
-    const perpMin = Math.min(...groupStrokes.map(s => dimension === 'x' ? s.minY : s.minX));
-    const perpMax = Math.max(...groupStrokes.map(s => dimension === 'x' ? s.maxY : s.maxX));
-    lassoBounds.push({ lassoIdx: i, min, max, perpMin, perpMax });
+    const min = Math.min(...hull.map(p => dimension === 'x' ? p.x : p.y));
+    const max = Math.max(...hull.map(p => dimension === 'x' ? p.x : p.y));
+    const perpMin = Math.min(...hull.map(p => dimension === 'x' ? p.y : p.x));
+    const perpMax = Math.max(...hull.map(p => dimension === 'x' ? p.y : p.x));
+    lassoBounds.push({ idx: i, min, max, perpMin, perpMax });
   }
 
   if (lassoBounds.length < 2) return dividers;
@@ -114,10 +99,10 @@ export function addInterLassoRowDividers(
   strokesByColumn: number[][],
   strokeBounds: StrokeBounds[],
   columnDividers: DividerLine[],
-  protectedGroups: ProtectedGroup[],
+  protectedBounds: ProtectedBound[],
   getColumnXBounds: (colIdx: number, columnDividers: DividerLine[], numColumns: number, colStrokes: StrokeBounds[]) => { minX: number; maxX: number },
 ): DividerLine[][] {
-  if (protectedGroups.length < 2) return rowDividers;
+  if (protectedBounds.length < 2) return rowDividers;
 
   return rowDividers.map((colRowDividers, colIdx) => {
     const colStrokeIndices = strokesByColumn[colIdx];
@@ -126,16 +111,16 @@ export function addInterLassoRowDividers(
     const colStrokes = colStrokeIndices.map(i => strokeBounds[i]);
     const colBounds = getColumnXBounds(colIdx, columnDividers, strokesByColumn.length, colStrokes);
 
-    const lassoBounds: { lassoIdx: number; minY: number; maxY: number }[] = [];
-    for (let i = 0; i < protectedGroups.length; i++) {
-      const group = protectedGroups[i];
-      const lassoStrokesInCol = group.strokeIndices.filter(idx => colStrokeIndices.includes(idx));
+    const lassoBounds: { idx: number; minY: number; maxY: number }[] = [];
+    for (let i = 0; i < protectedBounds.length; i++) {
+      const bound = protectedBounds[i];
+      const lassoStrokesInCol = bound.strokeIndices.filter(idx => colStrokeIndices.includes(idx));
       if (lassoStrokesInCol.length === 0) continue;
 
       const lassoStrokes = lassoStrokesInCol.map(idx => strokeBounds[idx]);
       const minY = Math.min(...lassoStrokes.map(s => s.minY));
       const maxY = Math.max(...lassoStrokes.map(s => s.maxY));
-      lassoBounds.push({ lassoIdx: i, minY, maxY });
+      lassoBounds.push({ idx: i, minY, maxY });
     }
 
     if (lassoBounds.length < 2) return colRowDividers;

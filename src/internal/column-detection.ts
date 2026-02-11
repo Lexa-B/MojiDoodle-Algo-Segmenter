@@ -1,12 +1,12 @@
-import type { StrokeBounds, DividerLine, ProtectedGroup, ResolvedConfig } from './types.js';
-import { wouldSplitProtectedGroup } from './protected-groups.js';
+import type { StrokeBounds, DividerLine, ProtectedBound, ResolvedConfig } from './types.js';
+import { wouldSplitProtectedBound } from './protected-groups.js';
 
 /** Find vertical dividers between columns by looking for X-gaps. */
 export function findColumnDividers(
   strokeBounds: StrokeBounds[],
   charWidth: number,
   config: ResolvedConfig,
-  protectedGroups: ProtectedGroup[],
+  protectedBounds: ProtectedBound[],
 ): DividerLine[] {
   if (strokeBounds.length < 2) return [];
 
@@ -41,7 +41,7 @@ export function findColumnDividers(
         end: overallMaxY + 10,
       };
     })
-    .filter(divider => !wouldSplitProtectedGroup(divider.intercept, 'x', strokeBounds, protectedGroups));
+    .filter(divider => !wouldSplitProtectedBound(divider.intercept, 'x', protectedBounds));
 }
 
 /** Assign strokes to columns based on dividers. Returns array indexed by Japanese column order. */

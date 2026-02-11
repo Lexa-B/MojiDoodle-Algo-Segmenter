@@ -1,5 +1,4 @@
 import type { Point } from '../types.js';
-import type { ProtectedGroup } from './types.js';
 
 /** Point-in-polygon test using ray casting algorithm. */
 export function isPointInPolygon(
@@ -47,20 +46,4 @@ export function findStrokesInLasso(
   }
 
   return indices;
-}
-
-/** Build protected groups from raw lasso polygons. */
-export function buildProtectedGroups(
-  strokes: Point[][],
-  lassoPolygons: { x: number; y: number }[][],
-  threshold: number,
-): ProtectedGroup[] {
-  const groups: ProtectedGroup[] = [];
-  for (const polygon of lassoPolygons) {
-    const strokeIndices = findStrokesInLasso(strokes, polygon, threshold);
-    if (strokeIndices.length > 0) {
-      groups.push({ strokeIndices });
-    }
-  }
-  return groups;
 }

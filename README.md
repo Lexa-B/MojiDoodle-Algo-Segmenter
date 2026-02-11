@@ -139,7 +139,7 @@ npm install
 npx ng serve
 ```
 
-Open `http://localhost:4200` to draw strokes, create lassos, and see live segmentation results. Segmentation runs automatically every 250ms. Strokes are colored by their lasso membership. Click on a lasso to delete it.
+Open `http://localhost:4201` to draw strokes, create lassos, and see live segmentation results. Segmentation runs automatically every 250ms. Strokes are colored by their lasso membership. Click on a lasso to delete it.
 
 ## Development
 

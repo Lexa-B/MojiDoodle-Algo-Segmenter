@@ -34,9 +34,10 @@ export interface GridCell {
   };
 }
 
-/** A group of strokes that should not be split by segmentation. */
-export interface ProtectedGroup {
+/** A protected group with its convex hull boundary. */
+export interface ProtectedBound {
   strokeIndices: number[];
+  hull: { x: number; y: number }[];
 }
 
 /** Resolved config with all defaults applied. */

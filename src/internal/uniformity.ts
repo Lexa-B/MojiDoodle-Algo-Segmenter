@@ -1,5 +1,5 @@
-import type { StrokeBounds, DividerLine, ProtectedGroup, ContentBounds, ResolvedConfig } from './types.js';
-import { wouldSplitProtectedGroup } from './protected-groups.js';
+import type { StrokeBounds, DividerLine, ProtectedBound, ContentBounds, ResolvedConfig } from './types.js';
+import { wouldSplitProtectedBound } from './protected-groups.js';
 import { assignStrokesToColumns } from './column-detection.js';
 import { findAllRowDividers, getColumnXBounds } from './row-detection.js';
 
@@ -16,7 +16,7 @@ export function enforceColumnUniformity(
   columnDividers: DividerLine[],
   strokeBounds: StrokeBounds[],
   contentBounds: ContentBounds,
-  protectedGroups: ProtectedGroup[],
+  protectedBounds: ProtectedBound[],
   config: ResolvedConfig,
 ): DividerLine[] {
   if (strokeBounds.length === 0) return columnDividers;
@@ -46,7 +46,7 @@ export function enforceColumnUniformity(
     // Strategy 1: Split the largest
     const widestIdx = widths.indexOf(Math.max(...widths));
     const candidateSplitX = (boundaries[widestIdx] + boundaries[widestIdx + 1]) / 2;
-    const wouldSplitColumn = wouldSplitProtectedGroup(candidateSplitX, 'x', strokeBounds, protectedGroups);
+    const wouldSplitColumn = wouldSplitProtectedBound(candidateSplitX, 'x', protectedBounds);
 
     if (!wouldSplitColumn) {
       const widthsAfterSplit = [...widths];
@@ -119,7 +119,7 @@ export function enforceRowUniformity(
   strokesByColumn: number[][],
   strokeBounds: StrokeBounds[],
   columnDividers: DividerLine[],
-  protectedGroups: ProtectedGroup[],
+  protectedBounds: ProtectedBound[],
   config: ResolvedConfig,
 ): DividerLine[][] {
   const MAX_ITERATIONS = 10;
@@ -157,7 +157,7 @@ export function enforceRowUniformity(
       // Strategy 1: Split the tallest
       const tallestIdx = heights.indexOf(Math.max(...heights));
       const candidateSplitY = (boundaries[tallestIdx] + boundaries[tallestIdx + 1]) / 2;
-      const wouldSplitRow = wouldSplitProtectedGroup(candidateSplitY, 'y', strokeBounds, protectedGroups);
+      const wouldSplitRow = wouldSplitProtectedBound(candidateSplitY, 'y', protectedBounds);
 
       if (!wouldSplitRow) {
         const heightsAfterSplit = [...heights];
@@ -232,7 +232,7 @@ export function enforceColumnsNotExceedRows(
   strokeBounds: StrokeBounds[],
   charHeight: number,
   contentBounds: ContentBounds,
-  protectedGroups: ProtectedGroup[],
+  protectedBounds: ProtectedBound[],
   config: ResolvedConfig,
 ): { columnDividers: DividerLine[]; rowDividers: DividerLine[][] } {
   const MAX_ITERATIONS = 10;
@@ -267,8 +267,8 @@ export function enforceColumnsNotExceedRows(
     dividers = sortedDividers;
 
     const strokesByColumn = assignStrokesToColumns(strokeBounds, dividers);
-    rows = findAllRowDividers(strokesByColumn, strokeBounds, dividers, charHeight, config, protectedGroups);
-    rows = enforceRowUniformity(rows, strokesByColumn, strokeBounds, dividers, protectedGroups, config);
+    rows = findAllRowDividers(strokesByColumn, strokeBounds, dividers, charHeight, config, protectedBounds);
+    rows = enforceRowUniformity(rows, strokesByColumn, strokeBounds, dividers, protectedBounds, config);
   }
 
   return { columnDividers: dividers, rowDividers: rows };

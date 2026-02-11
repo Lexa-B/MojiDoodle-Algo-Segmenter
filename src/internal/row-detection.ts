@@ -1,5 +1,5 @@
-import type { StrokeBounds, DividerLine, ProtectedGroup, ResolvedConfig } from './types.js';
-import { wouldSplitProtectedGroup } from './protected-groups.js';
+import type { StrokeBounds, DividerLine, ProtectedBound, ResolvedConfig } from './types.js';
+import { wouldSplitProtectedBound } from './protected-groups.js';
 
 /** Get the X bounds for a column. */
 export function getColumnXBounds(
@@ -34,9 +34,8 @@ function findRowDividers(
   colStrokes: StrokeBounds[],
   charHeight: number,
   colBounds: { minX: number; maxX: number },
-  allStrokeBounds: StrokeBounds[],
   config: ResolvedConfig,
-  protectedGroups: ProtectedGroup[],
+  protectedBounds: ProtectedBound[],
 ): DividerLine[] {
   if (colStrokes.length < 2) return [];
 
@@ -68,7 +67,7 @@ function findRowDividers(
         end: colBounds.maxX + 10,
       };
     })
-    .filter(divider => !wouldSplitProtectedGroup(divider.intercept, 'y', allStrokeBounds, protectedGroups));
+    .filter(divider => !wouldSplitProtectedBound(divider.intercept, 'y', protectedBounds));
 }
 
 /** Find row dividers for all columns. */
@@ -78,7 +77,7 @@ export function findAllRowDividers(
   columnDividers: DividerLine[],
   charHeight: number,
   config: ResolvedConfig,
-  protectedGroups: ProtectedGroup[],
+  protectedBounds: ProtectedBound[],
 ): DividerLine[][] {
   return strokesByColumn.map((colStrokeIndices, colIdx) => {
     if (colStrokeIndices.length < 2) return [];
@@ -86,6 +85,6 @@ export function findAllRowDividers(
     const colStrokes = colStrokeIndices.map(i => strokeBounds[i]);
     const colBounds = getColumnXBounds(colIdx, columnDividers, strokesByColumn.length, colStrokes);
 
-    return findRowDividers(colStrokes, charHeight, colBounds, strokeBounds, config, protectedGroups);
+    return findRowDividers(colStrokes, charHeight, colBounds, config, protectedBounds);
   });
 }

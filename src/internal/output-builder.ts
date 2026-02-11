@@ -1,6 +1,5 @@
 import type { Point, CharacterSlot, AnnotatedStroke, AnnotatedLasso } from '../types.js';
 import type { GridCell } from './types.js';
-import { findStrokesInLasso } from './lasso-containment.js';
 
 /** Build CharacterSlots from grid cells, sorted in Japanese reading order. */
 export function buildCharacterSlots(
@@ -73,15 +72,14 @@ export function buildAnnotatedStrokesFromCells(
   }));
 }
 
-/** Build AnnotatedLassos from input lassos and strokes. */
+/** Build AnnotatedLassos from pre-computed manual groups. */
 export function buildAnnotatedLassos(
-  strokes: Point[][],
   lassoPolygons: { x: number; y: number }[][],
-  threshold: number,
+  manualGroups: Map<number, number[]>,
 ): AnnotatedLasso[] {
-  return lassoPolygons.map((points, index) => ({
-    index,
-    points,
-    strokeIndices: findStrokesInLasso(strokes, points, threshold),
-  }));
+  const result: AnnotatedLasso[] = [];
+  for (const [idx, strokeIndices] of manualGroups) {
+    result.push({ index: idx, points: lassoPolygons[idx], strokeIndices });
+  }
+  return result;
 }

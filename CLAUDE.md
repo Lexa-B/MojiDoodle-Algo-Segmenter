@@ -127,7 +127,7 @@ npm run test:watch   # Run tests in watch mode
 ```bash
 cd example
 npm install
-npx ng serve         # Dev server at http://localhost:4200
+npx ng serve         # Dev server at http://localhost:4201
 npx ng build --base-href /MojiDoodle-Algo-Segmenter/   # Production build for GitHub Pages
 ```
 
