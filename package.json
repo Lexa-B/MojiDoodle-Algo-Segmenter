@@ -1,6 +1,6 @@
 {
   "name": "mojidoodle-algo-segmenter",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Gap-based Japanese handwriting stroke segmenter",
   "author": {
     "name": "Lexa Baldwin",
