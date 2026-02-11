@@ -77,9 +77,9 @@ export function buildAnnotatedLassos(
   lassoPolygons: { x: number; y: number }[][],
   manualGroups: Map<number, number[]>,
 ): AnnotatedLasso[] {
-  const result: AnnotatedLasso[] = [];
-  for (const [idx, strokeIndices] of manualGroups) {
-    result.push({ index: idx, points: lassoPolygons[idx], strokeIndices });
-  }
-  return result;
+  return lassoPolygons.map((polygon, idx) => ({
+    index: idx,
+    points: polygon,
+    strokeIndices: manualGroups.get(idx) ?? [],
+  }));
 }

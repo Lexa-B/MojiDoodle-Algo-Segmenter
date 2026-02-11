@@ -47,3 +47,19 @@ export function findStrokesInLasso(
 
   return indices;
 }
+
+/** Build protected groups from lassos — each lasso that contains strokes becomes a group. */
+export function buildProtectedGroups(
+  strokes: Point[][],
+  lassoPolygons: { x: number; y: number }[][],
+  threshold: number,
+): { strokeIndices: number[] }[] {
+  const groups: { strokeIndices: number[] }[] = [];
+  for (const polygon of lassoPolygons) {
+    const strokeIndices = findStrokesInLasso(strokes, polygon, threshold);
+    if (strokeIndices.length > 0) {
+      groups.push({ strokeIndices });
+    }
+  }
+  return groups;
+}

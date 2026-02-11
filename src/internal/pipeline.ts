@@ -35,6 +35,9 @@ export function runPipeline(
   const manualGroups: Map<number, number[]> = new Map();
   for (const lasso of lassos) {
     const strokeIndices = findStrokesInLasso(strokes, lasso.points, config.lassoContainmentThreshold);
+    const idx = lassoPolygons.length;
+    lassoPolygons.push(lasso.points);
+
     if (strokeIndices.length === 0) continue;
 
     // Steal strokes from prior groups
@@ -49,11 +52,9 @@ export function runPipeline(
           manualGroups.set(prevOwner, updated);
         }
       }
-      claimedBy.set(si, lassoPolygons.length);
+      claimedBy.set(si, idx);
     }
 
-    const idx = lassoPolygons.length;
-    lassoPolygons.push(lasso.points);
     manualGroups.set(idx, strokeIndices);
   }
   // eslint-disable-next-line no-console

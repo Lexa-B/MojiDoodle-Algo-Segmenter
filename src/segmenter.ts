@@ -40,16 +40,8 @@ export class Segmenter {
           input.canvasHeight,
         );
 
-    // Debug: draw protected_bounds (convex hulls) instead of raw lasso polygons
-    const hullPolygons: { x: number; y: number }[][] = [];
-    for (let i = 0; i < input.lassos.length; i++) {
-      const hull = pipelineResult.protectedBounds.get(i);
-      if (hull && hull.length >= 3) {
-        hullPolygons.push(hull);
-      }
-    }
     const lassoSvg = generateLassoSvg(
-      hullPolygons,
+      input.lassos.map(l => l.points),
       input.canvasWidth,
       input.canvasHeight,
     );

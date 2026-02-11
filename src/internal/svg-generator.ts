@@ -58,7 +58,7 @@ export function generateLassoSvg(
     const pointsStr = polygon.map(p => `${p.x},${p.y}`).join(' ');
 
     polygons.push(
-      `  <polygon points="${pointsStr}" fill="hsla(${hue},55%,78%,0.075)" stroke="hsla(${hue},55%,78%,0.7)" stroke-width="2" stroke-dasharray="6,4" />`
+      `  <polygon points="${pointsStr}" fill="hsla(${hue},55%,78%,0.15)" stroke="hsla(${hue},55%,78%,0.7)" stroke-width="2" stroke-dasharray="6,4" />`
     );
   }
 
