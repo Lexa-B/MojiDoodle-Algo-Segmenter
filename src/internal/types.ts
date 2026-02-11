@@ -19,6 +19,7 @@ export interface DividerLine {
   intercept: number;
   start: number;
   end: number;
+  mandatory?: boolean;
 }
 
 /** A cell in the segmentation grid representing a single character. */

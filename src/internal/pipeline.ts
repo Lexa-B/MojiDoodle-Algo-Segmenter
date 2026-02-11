@@ -152,6 +152,12 @@ export function runPipeline(
   // Re-assign after potential column changes
   strokesByColumn = assignStrokesToColumns(strokeBounds, columnDividers);
 
+  // Step 9b: Re-add inter-protected-bound row dividers (may have been lost during step 9)
+  rowDividers = addInterLassoRowDividers(
+    rowDividers, strokesByColumn, strokeBounds, columnDividers, protectedBoundsList, getColumnXBounds,
+  );
+  rowDividers = enforceRowUniformity(rowDividers, strokesByColumn, strokeBounds, columnDividers, protectedBoundsList, config);
+
   // Step 10: Create cell grid
   const cells = createCellGrid(strokesByColumn, strokeBounds, columnDividers, rowDividers);
 

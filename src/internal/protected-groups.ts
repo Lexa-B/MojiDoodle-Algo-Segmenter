@@ -59,32 +59,25 @@ export function addInterLassoDividers(
     const current = lassoBounds[i];
     const next = lassoBounds[i + 1];
 
-    const overlap = current.max - next.min;
-    const currentSize = current.max - current.min;
-    const nextSize = next.max - next.min;
-    const smallerSize = Math.min(currentSize, nextSize);
+    const boundary = (current.max + next.min) / 2;
 
-    const perpOverlap = Math.min(current.perpMax, next.perpMax) - Math.max(current.perpMin, next.perpMin);
-    const currentPerpSize = current.perpMax - current.perpMin;
-    const nextPerpSize = next.perpMax - next.perpMin;
-    const smallerPerpSize = Math.min(currentPerpSize, nextPerpSize);
-
-    const areSideBySide = smallerPerpSize > 0 && perpOverlap > smallerPerpSize * 0.3;
-
-    if (smallerSize > 0 && overlap > smallerSize * 0.5 && !areSideBySide) {
+    // If this divider would split a protected bound's hull, skip it —
+    // the bounds are in the same column and row dividers will handle them.
+    if (wouldSplitProtectedBound(boundary, dimension, protectedBounds)) {
       continue;
     }
 
-    const boundary = (current.max + next.min) / 2;
+    const nearbyDivider = result.find(d => Math.abs(d.intercept - boundary) < 10);
 
-    const hasNearbyDivider = [...dividerPositions].some(pos => Math.abs(pos - boundary) < 10);
-
-    if (!hasNearbyDivider) {
+    if (nearbyDivider) {
+      nearbyDivider.mandatory = true;
+    } else {
       result.push({
         slope: 0,
         intercept: boundary,
         start: perpExtentMin - 10,
         end: perpExtentMax + 10,
+        mandatory: true,
       });
       dividerPositions.add(boundary);
     }
@@ -134,25 +127,19 @@ export function addInterLassoRowDividers(
       const current = lassoBounds[i];
       const next = lassoBounds[i + 1];
 
-      const overlap = current.maxY - next.minY;
-      const currentSize = current.maxY - current.minY;
-      const nextSize = next.maxY - next.minY;
-      const smallerSize = Math.min(currentSize, nextSize);
-
-      if (smallerSize > 0 && overlap > smallerSize * 0.5) {
-        continue;
-      }
-
       const boundary = (current.maxY + next.minY) / 2;
 
-      const hasNearbyDivider = [...dividerPositions].some(pos => Math.abs(pos - boundary) < 10);
+      const nearbyDivider = result.find(d => Math.abs(d.intercept - boundary) < 10);
 
-      if (!hasNearbyDivider) {
+      if (nearbyDivider) {
+        nearbyDivider.mandatory = true;
+      } else {
         result.push({
           slope: 0,
           intercept: boundary,
           start: colBounds.minX - 10,
           end: colBounds.maxX + 10,
+          mandatory: true,
         });
         dividerPositions.add(boundary);
       }

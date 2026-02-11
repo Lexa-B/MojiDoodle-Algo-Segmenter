@@ -64,8 +64,9 @@ export function enforceColumnUniformity(
     // Strategy 2: Merge the smallest with a neighbor
     if (dividers.length > 0) {
       const smallestIdx = widths.indexOf(Math.min(...widths));
+      const sortedForCheck = [...dividers].sort((a, b) => a.intercept - b.intercept);
 
-      if (smallestIdx > 0) {
+      if (smallestIdx > 0 && !sortedForCheck[smallestIdx - 1]?.mandatory) {
         const widthsAfterMergeLeft = [...widths];
         widthsAfterMergeLeft[smallestIdx - 1] += widthsAfterMergeLeft[smallestIdx];
         widthsAfterMergeLeft.splice(smallestIdx, 1);
@@ -78,7 +79,7 @@ export function enforceColumnUniformity(
         }
       }
 
-      if (smallestIdx < widths.length - 1) {
+      if (smallestIdx < widths.length - 1 && !sortedForCheck[smallestIdx]?.mandatory) {
         const widthsAfterMergeRight = [...widths];
         widthsAfterMergeRight[smallestIdx] += widthsAfterMergeRight[smallestIdx + 1];
         widthsAfterMergeRight.splice(smallestIdx + 1, 1);
@@ -175,8 +176,9 @@ export function enforceRowUniformity(
       // Strategy 2: Merge the smallest with a neighbor
       if (dividers.length > 0) {
         const smallestIdx = heights.indexOf(Math.min(...heights));
+        const sortedForCheck = [...dividers].sort((a, b) => a.intercept - b.intercept);
 
-        if (smallestIdx > 0) {
+        if (smallestIdx > 0 && !sortedForCheck[smallestIdx - 1]?.mandatory) {
           const heightsAfterMergeTop = [...heights];
           heightsAfterMergeTop[smallestIdx - 1] += heightsAfterMergeTop[smallestIdx];
           heightsAfterMergeTop.splice(smallestIdx, 1);
@@ -189,7 +191,7 @@ export function enforceRowUniformity(
           }
         }
 
-        if (smallestIdx < heights.length - 1) {
+        if (smallestIdx < heights.length - 1 && !sortedForCheck[smallestIdx]?.mandatory) {
           const heightsAfterMergeBottom = [...heights];
           heightsAfterMergeBottom[smallestIdx] += heightsAfterMergeBottom[smallestIdx + 1];
           heightsAfterMergeBottom.splice(smallestIdx + 1, 1);
@@ -250,9 +252,10 @@ export function enforceColumnsNotExceedRows(
     const sortedDividers = [...dividers].sort((a, b) => a.intercept - b.intercept);
     const boundaries = [contentBounds.minX, ...sortedDividers.map(d => d.intercept), contentBounds.maxX];
 
-    let smallestGapIdx = 0;
+    let smallestGapIdx = -1;
     let smallestGap = Infinity;
     for (let i = 0; i < sortedDividers.length; i++) {
+      if (sortedDividers[i].mandatory) continue;
       const leftWidth = boundaries[i + 1] - boundaries[i];
       const rightWidth = boundaries[i + 2] - boundaries[i + 1];
       const combinedWidth = leftWidth + rightWidth;
@@ -262,6 +265,8 @@ export function enforceColumnsNotExceedRows(
         smallestGapIdx = i;
       }
     }
+
+    if (smallestGapIdx < 0) break; // all remaining dividers are mandatory
 
     sortedDividers.splice(smallestGapIdx, 1);
     dividers = sortedDividers;
